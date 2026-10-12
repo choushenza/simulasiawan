@@ -1,0 +1,877 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Laboratorium Angin dan Air</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: satu panggung 3D lebar di atas, lalu panel kontrol dan kartu penjelasan di bawahnya. */
+:root {
+  --bg: #eef5f6;
+  --surface: #ffffff;
+  --ink: #12303a;
+  --muted: #4a6872;
+  --line: #cddfe3;
+  --accent: #0b7f8f;
+  --accent-ink: #ffffff;
+  --sun: #d97a06;
+  --warm: #cf402b;
+  --cool: #2468c4;
+  --good: #26804d;
+  --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1b21; --surface: #132a31; --ink: #e5f1f3; --muted: #9bb7be; --line: #25424b;
+    --accent: #4fc3d3; --accent-ink: #072a31; --sun: #f3a43a; --warm: #ef7560; --cool: #7db0f2; --good: #5fd08c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1b21; --surface: #132a31; --ink: #e5f1f3; --muted: #9bb7be; --line: #25424b;
+  --accent: #4fc3d3; --accent-ink: #072a31; --sun: #f3a43a; --warm: #ef7560; --cool: #7db0f2; --good: #5fd08c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6; padding-inline: 16px; padding-block: 16px 48px; }
+.wrap { max-width: 1080px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.6rem, 5vw, 2.4rem); }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+.kicker { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px; }
+.tabs { display: flex; gap: 6px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; }
+.tab { font: inherit; font-weight: 800; border: 0; background: transparent; color: var(--muted); padding: 9px 18px; border-radius: 999px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+.stage { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: #8ec9ea; aspect-ratio: 16 / 9; min-height: 280px; max-height: 72vh; touch-action: none; }
+.stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); white-space: nowrap; font-weight: 800; font-size: .78rem; padding: 3px 9px; border-radius: 999px; background: rgba(10, 30, 40, .72); color: #fff; backdrop-filter: blur(2px); transition: opacity .25s; }
+.lbl.warm { background: rgba(190, 50, 30, .85); }
+.lbl.cool { background: rgba(30, 95, 190, .85); }
+.lbl.dim { opacity: .18; }
+.hud { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; max-width: calc(100% - 20px); }
+.badge { align-self: flex-start; font-family: var(--font-display); font-weight: 500; font-size: 1rem; padding: 6px 14px; border-radius: 12px; background: rgba(10, 30, 40, .78); color: #fff; }
+.hint { position: absolute; right: 10px; bottom: 8px; font-size: .74rem; font-weight: 700; color: #fff; background: rgba(10, 30, 40, .6); padding: 3px 10px; border-radius: 999px; pointer-events: none; }
+
+.panel[hidden] { display: none !important; }
+.panel { display: flex; flex-direction: column; gap: 20px; }
+.deck { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.card { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.card.plain { background: transparent; border-style: dashed; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: inherit; font-weight: 800; font-size: .92rem; padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn[aria-pressed="true"], .btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider label { font-weight: 800; display: flex; justify-content: space-between; gap: 10px; }
+.slider output { font-variant-numeric: tabular-nums; color: var(--accent); }
+input[type="range"] { width: 100%; accent-color: var(--accent); height: 28px; }
+.meter { display: grid; grid-template-columns: 74px 1fr 56px; align-items: center; gap: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar { height: 14px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 50%; border-radius: 8px; background: var(--warm); transition: width .2s; }
+.bar i.sea { background: var(--cool); }
+.say { font-size: 1.02rem; }
+.say b { color: var(--accent); }
+.muted { color: var(--muted); }
+
+.steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
+.steps .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); background: var(--accent); color: var(--accent-ink); }
+.steps strong { display: block; }
+.terms { margin: 0; display: grid; gap: 10px; }
+.terms div { border-left: 4px solid var(--accent); padding-left: 12px; }
+.terms dt { font-weight: 800; }
+.terms dd { margin: 0; color: var(--muted); }
+.roles { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.roles li { padding: 10px 12px; border-radius: 12px; background: var(--bg); }
+.roles b { display: block; font-family: var(--font-display); font-weight: 500; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 500; color: var(--accent); }
+.scroll { overflow-x: auto; }
+.try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="kicker">IPAS · Bumi dan Antariksa</p>
+      <h1>Laboratorium Angin dan Air</h1>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Pilih simulasi">
+      <button class="tab" role="tab" id="tab-wind" aria-selected="true" aria-controls="panel-wind">Siklus Angin</button>
+      <button class="tab" role="tab" id="tab-water" aria-selected="false" aria-controls="panel-water">Siklus Air</button>
+    </nav>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="gl" aria-label="Simulasi 3D. Geser untuk memutar sudut pandang."></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="hud"><div class="badge" id="badge">Siang hari</div></div>
+    <div class="hint">Geser untuk memutar · cubit atau gulir untuk zoom</div>
+  </div>
+
+  <!-- ============ SIKLUS ANGIN ============ -->
+  <section class="panel" id="panel-wind" role="tabpanel" aria-labelledby="tab-wind">
+    <div class="deck">
+      <div class="card">
+        <h2>Atur waktunya</h2>
+        <div class="row">
+          <button class="btn" id="wPlay" aria-pressed="false">▶ Putar otomatis</button>
+          <button class="btn" data-hour="13">Siang</button>
+          <button class="btn" data-hour="1">Malam</button>
+          <button class="btn" data-hour="6">Pagi</button>
+        </div>
+        <div class="slider">
+          <label for="wHour">Jam <output id="wHourOut">13.00</output></label>
+          <input type="range" id="wHour" min="0" max="24" step="0.05" value="13">
+        </div>
+        <div class="meter"><span>Daratan</span><div class="bar"><i id="wBarLand"></i></div><span id="wTLand">34°C</span></div>
+        <div class="meter"><span>Laut</span><div class="bar"><i class="sea" id="wBarSea"></i></div><span id="wTSea">29°C</span></div>
+        <p class="say" id="wSay"></p>
+      </div>
+      <div class="card">
+        <h2>Bagaimana angin terbentuk?</h2>
+        <ol class="steps">
+          <li><span class="n">1</span><span><strong>Matahari memanaskan bumi</strong>Daratan cepat panas dan cepat dingin. Laut lambat panas dan lambat dingin.</span></li>
+          <li><span class="n">2</span><span><strong>Udara panas naik</strong>Udara di atas tempat yang lebih panas memuai, menjadi ringan, lalu naik. Tempat itu bertekanan rendah.</span></li>
+          <li><span class="n">3</span><span><strong>Udara dingin turun</strong>Udara di atas tempat yang lebih sejuk menjadi berat dan turun. Tempat itu bertekanan tinggi.</span></li>
+          <li><span class="n">4</span><span><strong>Udara berpindah</strong>Udara bergerak dari tekanan tinggi ke tekanan rendah. Perpindahan itulah yang kita rasakan sebagai angin.</span></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="deck">
+      <div class="card">
+        <h2>Faktor penyebab angin</h2>
+        <dl class="terms">
+          <div><dt>Panas matahari</dt><dd>Sumber tenaga yang membuat suhu permukaan bumi berbeda-beda.</dd></div>
+          <div><dt>Perbedaan daratan dan laut</dt><dd>Air butuh lebih banyak panas untuk naik suhunya, jadi laut lebih lambat berubah suhu daripada daratan.</dd></div>
+          <div><dt>Perbedaan tekanan udara</dt><dd>Makin besar selisih tekanan, makin kencang angin yang berhembus.</dd></div>
+          <div><dt>Waktu siang dan malam</dt><dd>Siang daratan lebih panas dari laut. Malam daratan lebih dingin dari laut. Arah angin pun berbalik.</dd></div>
+        </dl>
+      </div>
+      <div class="card">
+        <h2>Angin laut dan angin darat</h2>
+        <div class="scroll">
+          <table>
+            <thead><tr><th></th><th>Angin laut</th><th>Angin darat</th></tr></thead>
+            <tbody>
+              <tr><td>Waktu</td><td>Siang hingga sore</td><td>Malam hingga pagi</td></tr>
+              <tr><td>Arah</td><td>Laut ke darat</td><td>Darat ke laut</td></tr>
+              <tr><td>Yang lebih panas</td><td>Daratan</td><td>Laut</td></tr>
+              <tr><td>Udara naik di</td><td>Daratan</td><td>Laut</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Apa fungsi dan peran angin?</h2>
+      <ul class="roles deck" style="gap:10px">
+        <li><b>Membantu nelayan</b>Nelayan berangkat malam memakai angin darat dan pulang siang memakai angin laut.</li>
+        <li><b>Menyejukkan pantai</b>Angin laut membawa udara sejuk ke daratan pada siang yang terik.</li>
+        <li><b>Penyerbukan dan penyebaran biji</b>Angin membawa serbuk sari dan biji, misalnya biji bunga dandelion dan buah karet.</li>
+        <li><b>Sumber energi</b>Kincir angin dan PLTB mengubah gerak angin menjadi listrik.</li>
+        <li><b>Memindahkan awan</b>Angin mendorong awan, sehingga hujan bisa turun di tempat yang jauh dari laut.</li>
+        <li><b>Membantu pekerjaan sehari-hari</b>Menjemur pakaian, menjemur ikan asin dan padi, serta menggerakkan perahu layar.</li>
+      </ul>
+    </div>
+    <div class="card plain">
+      <h3>Coba sendiri</h3>
+      <ol class="try">
+        <li>Tekan Siang. Daratan mana yang lebih panas, dan ke mana udara hangat bergerak?</li>
+        <li>Tekan Malam. Apa yang terjadi pada arah panah di dekat permukaan?</li>
+        <li>Geser jam ke pagi atau sore. Mengapa angin hampir berhenti?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ SIKLUS AIR ============ -->
+  <section class="panel" id="panel-water" role="tabpanel" aria-labelledby="tab-water" hidden>
+    <div class="deck">
+      <div class="card">
+        <h2>Atur simulasinya</h2>
+        <div class="slider">
+          <label for="heat">Panas matahari <output id="heatOut">60%</output></label>
+          <input type="range" id="heat" min="0" max="100" step="1" value="60">
+        </div>
+        <div class="row" role="group" aria-label="Pilih tahap">
+          <button class="btn on" data-stage="all">Semua tahap</button>
+          <button class="btn" data-stage="evap">1 Penguapan</button>
+          <button class="btn" data-stage="cond">2 Pengembunan</button>
+          <button class="btn" data-stage="rain">3 Hujan</button>
+          <button class="btn" data-stage="flow">4 Aliran dan peresapan</button>
+        </div>
+        <button class="btn" id="aPause" aria-pressed="false" style="align-self:flex-start">⏸ Jeda</button>
+      </div>
+      <div class="card">
+        <h2 id="aTitle">Semua tahap berjalan bersama</h2>
+        <p class="say" id="aText">Air tidak pernah habis, hanya berpindah tempat dan berganti wujud. Pilih satu tahap untuk melihatnya lebih jelas.</p>
+        <p class="muted" id="aCause"></p>
+      </div>
+    </div>
+
+    <div class="deck">
+      <div class="card">
+        <h2>Tahap-tahap siklus air</h2>
+        <ol class="steps">
+          <li><span class="n">1</span><span><strong>Penguapan (evaporasi)</strong>Panas matahari mengubah air laut, sungai, dan danau menjadi uap air yang naik ke udara. Pohon juga melepas uap dari daunnya. Itu disebut transpirasi.</span></li>
+          <li><span class="n">2</span><span><strong>Pengembunan (kondensasi)</strong>Di ketinggian udara dingin. Uap air berubah menjadi titik-titik air kecil dan berkumpul menjadi awan.</span></li>
+          <li><span class="n">3</span><span><strong>Hujan (presipitasi)</strong>Titik air dalam awan menyatu hingga terlalu berat, lalu jatuh sebagai hujan.</span></li>
+          <li><span class="n">4</span><span><strong>Aliran dan peresapan</strong>Sebagian air mengalir di permukaan menuju sungai dan laut. Sebagian meresap ke tanah menjadi air tanah.</span></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>Faktor penyebab siklus air</h2>
+        <dl class="terms">
+          <div><dt>Panas matahari</dt><dd>Penggerak utama. Makin panas, makin banyak air yang menguap.</dd></div>
+          <div><dt>Suhu udara di ketinggian</dt><dd>Udara yang dingin membuat uap air mengembun menjadi awan.</dd></div>
+          <div><dt>Angin</dt><dd>Mendorong awan dan uap air ke tempat lain, termasuk ke pegunungan.</dd></div>
+          <div><dt>Gaya gravitasi</dt><dd>Menarik air hujan jatuh dan membuat air mengalir dari tempat tinggi ke tempat rendah.</dd></div>
+          <div><dt>Tumbuhan dan jenis tanah</dt><dd>Akar pohon dan tanah gembur membantu air meresap. Daun melepas uap air.</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Apa fungsi dan peran siklus air?</h2>
+      <ul class="roles deck" style="gap:10px">
+        <li><b>Menyediakan air bersih</b>Hujan mengisi sungai, danau, dan sumur yang kita pakai untuk minum, mandi, dan memasak.</li>
+        <li><b>Menyuburkan tanaman</b>Air hujan dan air tanah dibutuhkan sawah dan kebun agar tumbuh.</li>
+        <li><b>Menjaga suhu bumi</b>Penguapan menyerap panas, sehingga bumi tidak terlalu panas.</li>
+        <li><b>Rumah bagi makhluk hidup</b>Laut, sungai, dan danau menjadi habitat ikan dan hewan air lainnya.</li>
+        <li><b>Menghasilkan listrik</b>Air sungai yang jatuh dari tempat tinggi memutar turbin pembangkit listrik tenaga air.</li>
+        <li><b>Membersihkan dan menyegarkan udara</b>Hujan menurunkan debu di udara dan menjaga tanah tetap lembap.</li>
+      </ul>
+    </div>
+    <div class="card plain">
+      <h3>Coba sendiri</h3>
+      <ol class="try">
+        <li>Geser panas matahari ke 100%. Apa yang terjadi pada awan?</li>
+        <li>Turunkan ke 0%. Mengapa penguapan melambat?</li>
+        <li>Pilih tahap 4. Ke mana saja air hujan pergi setelah jatuh ke gunung?</li>
+      </ol>
+    </div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+const stage = $('#stage'), canvas = $('#gl'), labelsEl = $('#labels'), badge = $('#badge');
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+} catch (err) {
+  stage.insertAdjacentHTML('beforeend', '<div style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#fff;background:#12303a">Simulasi 3D tidak bisa dijalankan di perangkat ini. Teks penjelasan di bawah tetap bisa dibaca.</div>');
+  return;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 200);
+
+/* ---------- bantuan umum ---------- */
+function dotTex() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+const DOT = dotTex();
+
+function makePoints(n, size, color, useVertexColors) {
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(n * 3);
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  let col = null;
+  if (useVertexColors) { col = new Float32Array(n * 3); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); }
+  const mat = new THREE.PointsMaterial({ map: DOT, size, color: color || 0xffffff, vertexColors: !!useVertexColors, transparent: true, depthWrite: false, sizeAttenuation: true });
+  const pts = new THREE.Points(g, mat); pts.frustumCulled = false;
+  return { pts, pos, col, geo: g, mat };
+}
+
+function makeLabel(sc, text, cls, group) {
+  const el = document.createElement('div');
+  el.className = 'lbl' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  el.style.display = 'none';
+  labelsEl.appendChild(el);
+  const o = { el, pos: new THREE.Vector3(), group: group || '', shown: true, text,
+    set(t) { if (t !== this.text) { this.text = t; el.textContent = t; } },
+    cls(c) { el.className = 'lbl ' + c; } };
+  sc.labels.push(o);
+  return o;
+}
+
+function waveSea(mesh, base, t, amp) {
+  const p = mesh.geometry.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = base[i * 3], z = base[i * 3 + 1];
+    p.setZ(i, Math.sin(x * 0.9 + t * 1.6) * amp + Math.cos(z * 1.1 + t * 1.2) * amp * 0.8);
+  }
+  p.needsUpdate = true;
+  mesh.geometry.computeVertexNormals();
+}
+function seaMesh(w, d, color) {
+  const geo = new THREE.PlaneGeometry(w, d, 22, 16);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.94 }));
+  mesh.rotation.x = -Math.PI / 2;
+  const base = Float32Array.from(geo.attributes.position.array);
+  const p = geo.attributes.position;
+  const xy = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) { xy[i * 3] = p.getX(i); xy[i * 3 + 1] = p.getY(i); }
+  return { mesh, base: xy };
+}
+function tree(x, z, s) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * s, 0.14 * s, 1 * s, 7), new THREE.MeshLambertMaterial({ color: 0x7a5232 }));
+  trunk.position.y = 0.5 * s; g.add(trunk);
+  const leaf = new THREE.MeshLambertMaterial({ color: 0x2f8f46 });
+  const c1 = new THREE.Mesh(new THREE.ConeGeometry(0.62 * s, 1.1 * s, 9), leaf); c1.position.y = 1.35 * s; g.add(c1);
+  const c2 = new THREE.Mesh(new THREE.ConeGeometry(0.46 * s, 0.9 * s, 9), leaf); c2.position.y = 1.9 * s; g.add(c2);
+  g.position.set(x, 0.4, z);
+  return g;
+}
+
+/* ---------- kamera dan sentuhan ---------- */
+const scenes = {};
+let activeKey = 'wind';
+const cur = () => scenes[activeKey];
+let aspectMul = 1;
+
+function applyView(v) {
+  const r = v.r * aspectMul;
+  camera.position.set(v.tx + r * Math.sin(v.phi) * Math.sin(v.theta), v.ty + r * Math.cos(v.phi), v.tz + r * Math.sin(v.phi) * Math.cos(v.theta));
+  camera.lookAt(v.tx, v.ty, v.tz);
+}
+const ptrs = new Map();
+let lastDist = 0;
+const pdist = () => { const a = Array.from(ptrs.values()); return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1; };
+canvas.addEventListener('pointerdown', (e) => {
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) lastDist = pdist();
+});
+canvas.addEventListener('pointermove', (e) => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const v = cur().view;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptrs.size === 1) {
+    v.theta -= dx * 0.006;
+    v.phi = clamp(v.phi - dy * 0.006, 0.4, 1.55);
+  } else if (ptrs.size === 2) {
+    const d = pdist();
+    v.r = clamp(v.r * (lastDist / d), 11, 42);
+    lastDist = d;
+  }
+});
+const endPtr = (e) => { ptrs.delete(e.pointerId); };
+canvas.addEventListener('pointerup', endPtr);
+canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const v = cur().view;
+  v.r = clamp(v.r * Math.exp(e.deltaY * 0.001), 11, 42);
+}, { passive: false });
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  aspectMul = camera.aspect < 1.7 ? 1.7 / camera.aspect : 1;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+
+const tmpV = new THREE.Vector3();
+function placeLabels(sc) {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  for (const l of sc.labels) {
+    if (!l.shown) { l.el.style.display = 'none'; continue; }
+    tmpV.copy(l.pos).project(camera);
+    if (tmpV.z > 1 || Math.abs(tmpV.x) > 1.15 || Math.abs(tmpV.y) > 1.15) { l.el.style.display = 'none'; continue; }
+    l.el.style.display = 'block';
+    l.el.style.transform = 'translate(' + ((tmpV.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((-tmpV.y * 0.5 + 0.5) * h).toFixed(1) + 'px) translate(-50%,-50%)';
+  }
+}
+function hideLabels(sc) { for (const l of sc.labels) l.el.style.display = 'none'; }
+
+/* =====================================================
+   SIMULASI 1: ANGIN DARAT DAN ANGIN LAUT
+   ===================================================== */
+function makeWind() {
+  const sc = { scene: new THREE.Scene(), labels: [], view: { theta: 0.32, phi: 1.2, r: 24, tx: 0, ty: 3, tz: 0 } };
+  const scene = sc.scene;
+  const ambient = new THREE.AmbientLight(0xffffff, 0.7); scene.add(ambient);
+  const sunLight = new THREE.DirectionalLight(0xfff1d0, 0.9); scene.add(sunLight);
+  const moonLight = new THREE.DirectionalLight(0x8fb0ff, 0.0); moonLight.position.set(8, 10, 6); scene.add(moonLight);
+
+  // laut dan daratan
+  const sea = seaMesh(9, 12, 0x2a8fc4); sea.mesh.position.set(-4.5, 0, 0); scene.add(sea.mesh);
+  const seaBody = new THREE.Mesh(new THREE.BoxGeometry(9, 1.6, 12), new THREE.MeshLambertMaterial({ color: 0x1b6f9e }));
+  seaBody.position.set(-4.5, -0.85, 0); scene.add(seaBody);
+  const landMat = new THREE.MeshLambertMaterial({ color: 0x6aa84f });
+  const land = new THREE.Mesh(new THREE.BoxGeometry(9, 1.6, 12), landMat); land.position.set(4.5, -0.4, 0); scene.add(land);
+  const sand = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.62, 12), new THREE.MeshLambertMaterial({ color: 0xe8d7a0 })); sand.position.set(0.7, -0.39, 0); scene.add(sand);
+  sand.scale.y = 1.005;
+
+  // rumah, pohon, perahu
+  const house = new THREE.Group();
+  const hb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 1.4), new THREE.MeshLambertMaterial({ color: 0xf2e3c6 })); hb.position.y = 0.5;
+  const hr = new THREE.Mesh(new THREE.ConeGeometry(1.35, 0.8, 4), new THREE.MeshLambertMaterial({ color: 0xc0583a })); hr.position.y = 1.4; hr.rotation.y = Math.PI / 4;
+  house.add(hb, hr); house.position.set(6.4, 0.4, 2.6); scene.add(house);
+  scene.add(tree(3.4, -2.4, 1.1), tree(7.8, -1.2, 1.3), tree(5.2, 3.6, 0.9), tree(8, 3.6, 1));
+  const boat = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.6), new THREE.MeshLambertMaterial({ color: 0xb04a2e })); hull.position.y = 0.15;
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.4, 6), new THREE.MeshLambertMaterial({ color: 0x5b4030 })); mast.position.y = 0.95;
+  const sail = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 3), new THREE.MeshLambertMaterial({ color: 0xffffff })); sail.position.set(0.05, 1.0, 0); sail.rotation.z = 0;
+  boat.add(hull, mast, sail); boat.position.set(-5.5, 0.05, 3); scene.add(boat);
+
+  // matahari, bulan, bintang
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffb830 }));
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0.28 }));
+  sun.add(halo); scene.add(sun);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 16), new THREE.MeshBasicMaterial({ color: 0xe9efff })); scene.add(moon);
+  const starsN = 220, starGeo = new THREE.BufferGeometry(), sp = new Float32Array(starsN * 3);
+  for (let i = 0; i < starsN; i++) {
+    const a = Math.random() * Math.PI * 2, e = 0.15 + Math.random() * 1.0;
+    sp[i * 3] = Math.cos(a) * 34 * Math.cos(e) * 0.9; sp[i * 3 + 1] = 5 + Math.sin(e) * 24; sp[i * 3 + 2] = -22 - Math.random() * 6;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0, depthWrite: false, map: DOT }));
+  scene.add(stars);
+
+  // partikel udara
+  const N = 340, RX = 5.2, RY = 2.5, CY = 3.1;
+  const air = makePoints(N, 0.34, 0xffffff, true); scene.add(air.pts);
+  const A = new Float32Array(N), OFF = new Float32Array(N), Z = new Float32Array(N), SPD = new Float32Array(N), WOB = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    A[i] = Math.random() * Math.PI * 2; OFF[i] = (Math.random() - 0.5) * 0.4; Z[i] = (Math.random() - 0.5) * 8; SPD[i] = 0.75 + Math.random() * 0.5; WOB[i] = Math.random() * 6.28;
+  }
+  // panah besar
+  const arrows = [];
+  const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const NA = 12;
+  for (let i = 0; i < NA; i++) {
+    const m = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.8, 10), arrowMat);
+    scene.add(m); arrows.push({ mesh: m, a: (i / NA) * Math.PI * 2 });
+  }
+
+  // label
+  const L = {
+    land: makeLabel(sc, 'Daratan', '', ''), sea: makeLabel(sc, 'Laut', '', ''),
+    up: makeLabel(sc, 'Udara naik', 'warm', ''), down: makeLabel(sc, 'Udara turun', 'cool', ''),
+    low: makeLabel(sc, 'Tekanan rendah', 'warm', ''), high: makeLabel(sc, 'Tekanan tinggi', 'cool', ''),
+    surf: makeLabel(sc, 'Angin laut', '', ''), top: makeLabel(sc, 'Aliran udara di atas', '', '')
+  };
+  L.land.pos.set(5, 0.9, 5.4); L.sea.pos.set(-4.5, 0.6, 5.4);
+  L.surf.pos.set(0, 0.55, 3.2); L.top.pos.set(0, 6.2, 0);
+
+  const state = { hour: 13, auto: false, cat: '' };
+  const cDay = new THREE.Color(0x8fd0f0), cNight = new THREE.Color(0x0a1530), cDusk = new THREE.Color(0xf2a272);
+  const seaDay = new THREE.Color(0x2a8fc4), seaNight = new THREE.Color(0x0f3a66);
+  const landDay = new THREE.Color(0x6aa84f), landNight = new THREE.Color(0x2b4a30);
+  const cCool = new THREE.Color(0.35, 0.68, 1), cWhite = new THREE.Color(1, 1, 1), cWarm = new THREE.Color(1, 0.42, 0.22);
+  const tc = new THREE.Color(), bg = new THREE.Color();
+
+  const ui = {
+    hour: $('#wHour'), out: $('#wHourOut'), play: $('#wPlay'), say: $('#wSay'),
+    tl: $('#wTLand'), ts: $('#wTSea'), bl: $('#wBarLand'), bs: $('#wBarSea')
+  };
+  const fmt = (h) => { const hh = Math.floor(h) % 24, mm = Math.floor((h - Math.floor(h)) * 60); return String(hh).padStart(2, '0') + '.' + String(mm).padStart(2, '0'); };
+  const SAY = {
+    sea: 'Daratan lebih panas dari laut. Udara di atas daratan naik, lalu udara sejuk dari laut bergerak mengisi tempat kosong. Itulah <b>angin laut</b>.',
+    land: 'Daratan lebih cepat dingin, sedangkan laut masih hangat. Udara di atas laut naik, lalu udara dari daratan mengalir mengisinya. Itulah <b>angin darat</b>.',
+    calm: 'Suhu daratan dan laut hampir sama, jadi tekanan udaranya hampir sama. Angin <b>hampir berhenti</b>.'
+  };
+
+  sc.setHour = (h) => { state.hour = ((h % 24) + 24) % 24; ui.hour.value = String(state.hour); };
+  sc.setAuto = (on) => { state.auto = on; ui.play.setAttribute('aria-pressed', String(on)); ui.play.textContent = on ? '⏸ Jeda' : '▶ Putar otomatis'; };
+  ui.hour.addEventListener('input', () => { state.hour = parseFloat(ui.hour.value); sc.setAuto(false); });
+  ui.play.addEventListener('click', () => sc.setAuto(!state.auto));
+  $$('[data-hour]').forEach((b) => b.addEventListener('click', () => { sc.setHour(parseFloat(b.dataset.hour)); sc.setAuto(false); }));
+
+  const T = new THREE.Vector3(), Q = new THREE.Quaternion(), UP = new THREE.Vector3(0, 1, 0);
+  let time = 0;
+
+  sc.update = (dt, t) => {
+    time = t;
+    if (state.auto) { state.hour = (state.hour + dt * 1.2) % 24; ui.hour.value = String(state.hour); }
+    const h = state.hour;
+    ui.out.textContent = fmt(h);
+
+    // suhu: daratan cepat berubah, laut lambat dan lebih tenang
+    const landT = 28 + 6 * Math.sin((h - 7) / 12 * Math.PI);
+    const seaT = 28 + 1.2 * Math.sin((h - 9) / 12 * Math.PI);
+    const diff = landT - seaT;
+    const f = clamp(diff / 4, -1, 1);
+    const strength = Math.abs(f) < 0.12 ? 0 : f;
+
+    // langit dan cahaya
+    const elev = Math.sin((h - 6) / 12 * Math.PI);
+    const day = smooth(-0.25, 0.35, elev), night = 1 - day;
+    bg.copy(cNight).lerp(cDay, day);
+    const dusk = 1 - smooth(0.0, 0.45, Math.abs(elev + 0.05));
+    bg.lerp(cDusk, dusk * 0.55);
+    scene.background = bg;
+    ambient.intensity = 0.32 + 0.5 * day;
+    sunLight.intensity = 0.95 * day;
+    moonLight.intensity = 0.55 * night;
+
+    const sa = (h - 6) / 12 * Math.PI;
+    sun.position.set(-Math.cos(sa) * 13, Math.sin(sa) * 10 + 0.3, -6);
+    sun.visible = elev > -0.12;
+    sunLight.position.copy(sun.position).setZ(4);
+    const ma = (((h - 18) % 24 + 24) % 24) / 12 * Math.PI;
+    moon.position.set(-Math.cos(ma) * 13, Math.sin(ma) * 10 + 0.3, -6);
+    moon.visible = ((h - 18 + 24) % 24) < 12;
+    stars.material.opacity = clamp(night * 1.1, 0, 0.95);
+
+    // warna dan bara panas
+    sea.mesh.material.color.copy(seaNight).lerp(seaDay, day);
+    seaBody.material.color.copy(seaNight).lerp(seaDay, day).multiplyScalar(0.7);
+    landMat.color.copy(landNight).lerp(landDay, day);
+    const hotLand = clamp(diff / 5, 0, 1), hotSea = clamp(-diff / 5, 0, 1);
+    landMat.emissive.setRGB(0.42 * hotLand, 0.07 * hotLand, 0.02 * hotLand);
+    sea.mesh.material.emissive.setRGB(0.22 * hotSea, 0.05 * hotSea, 0.02 * hotSea);
+    waveSea(sea.mesh, sea.base, t, 0.06);
+    boat.position.y = 0.08 + Math.sin(t * 1.4) * 0.07; boat.rotation.z = Math.sin(t * 1.2) * 0.05;
+    const boatDrift = strength === 0 ? 0 : Math.sign(strength) * 0.4;
+    boat.position.x = -5.4 + Math.sin(t * 0.2) * 0.3 + boatDrift * 0.4;
+    boat.rotation.y = strength > 0 ? 0 : (strength < 0 ? 0 : 0);
+
+    // gerak udara
+    const omega = 0.62 * strength;
+    const pos = air.pos, col = air.col;
+    for (let i = 0; i < N; i++) {
+      A[i] += (omega * SPD[i] + (strength === 0 ? Math.sin(t * 0.7 + WOB[i]) * 0.06 : 0)) * dt;
+      const a = A[i];
+      const rx = RX * (1 + OFF[i]), ry = RY * (1 + OFF[i] * 0.7);
+      pos[i * 3] = rx * Math.cos(a);
+      pos[i * 3 + 1] = CY + ry * Math.sin(a);
+      pos[i * 3 + 2] = Z[i] + Math.sin(t * 1.3 + WOB[i]) * 0.08;
+      const w = clamp(Math.cos(a) * diff / 3, -1, 1) * 0.5 + 0.5;
+      if (w < 0.5) tc.copy(cCool).lerp(cWhite, w * 2); else tc.copy(cWhite).lerp(cWarm, (w - 0.5) * 2);
+      col[i * 3] = tc.r; col[i * 3 + 1] = tc.g; col[i * 3 + 2] = tc.b;
+    }
+    air.geo.attributes.position.needsUpdate = true; air.geo.attributes.color.needsUpdate = true;
+
+    // panah
+    const dir = Math.sign(strength) || 1;
+    for (const ar of arrows) {
+      ar.a += omega * 0.9 * dt;
+      const a = ar.a;
+      ar.mesh.position.set(RX * Math.cos(a), CY + RY * Math.sin(a), 0);
+      T.set(-RX * Math.sin(a), RY * Math.cos(a), 0).normalize().multiplyScalar(dir);
+      Q.setFromUnitVectors(UP, T); ar.mesh.quaternion.copy(Q);
+      const s = Math.abs(strength);
+      ar.mesh.scale.setScalar(s < 0.05 ? 0.001 : 0.5 + 0.7 * s);
+      const w = clamp(Math.cos(a) * diff / 3, -1, 1) * 0.5 + 0.5;
+      if (w < 0.5) tc.copy(cCool).lerp(cWhite, w * 2); else tc.copy(cWhite).lerp(cWarm, (w - 0.5) * 2);
+      arrowMat.color.copy(tc);
+    }
+
+    // label dan teks
+    const cat = strength > 0.25 ? 'sea' : (strength < -0.25 ? 'land' : 'calm');
+    const calm = cat === 'calm';
+    const hotRight = diff > 0;
+    L.up.shown = L.down.shown = L.low.shown = L.high.shown = L.top.shown = !calm;
+    L.surf.shown = !calm;
+    L.up.pos.set(hotRight ? RX + 0.2 : -RX - 0.2, CY + 0.2, 0);
+    L.down.pos.set(hotRight ? -RX - 0.2 : RX + 0.2, CY + 0.2, 0);
+    L.low.pos.set(hotRight ? RX : -RX, CY - 1.0, 0);
+    L.high.pos.set(hotRight ? -RX : RX, CY - 1.0, 0);
+    L.surf.set(cat === 'sea' ? 'Angin laut →' : (cat === 'land' ? '← Angin darat' : ''));
+    L.land.set('Daratan ' + Math.round(landT) + '°C'); L.sea.set('Laut ' + Math.round(seaT) + '°C');
+    L.land.cls(hotRight && !calm ? 'warm' : ''); L.sea.cls(!hotRight && !calm ? 'warm' : '');
+    if (cat !== state.cat) { state.cat = cat; ui.say.innerHTML = SAY[cat]; }
+    badge.textContent = (cat === 'sea' ? 'Angin laut' : (cat === 'land' ? 'Angin darat' : 'Angin tenang')) + ' · ' + fmt(h);
+
+    ui.tl.textContent = landT.toFixed(1) + '°C'; ui.ts.textContent = seaT.toFixed(1) + '°C';
+    ui.bl.style.width = clamp((landT - 20) / 16 * 100, 4, 100) + '%';
+    ui.bs.style.width = clamp((seaT - 20) / 16 * 100, 4, 100) + '%';
+  };
+  return sc;
+}
+scenes.wind = makeWind();
+
+/* =====================================================
+   SIMULASI 2: SIKLUS AIR (HIDROLOGI)
+   ===================================================== */
+function makePath(points) {
+  const segs = []; let tot = 0;
+  for (let i = 0; i < points.length - 1; i++) { const l = points[i].distanceTo(points[i + 1]); segs.push(l); tot += l; }
+  return {
+    at(s, out) {
+      let d = s * tot;
+      for (let i = 0; i < segs.length; i++) {
+        if (d <= segs[i] || i === segs.length - 1) { out.lerpVectors(points[i], points[i + 1], clamp(d / segs[i], 0, 1)); return out; }
+        d -= segs[i];
+      }
+      return out;
+    }
+  };
+}
+
+function makeWater() {
+  const sc = { scene: new THREE.Scene(), labels: [], view: { theta: 0.3, phi: 1.22, r: 27, tx: 0.5, ty: 3, tz: 0 } };
+  const scene = sc.scene;
+  scene.background = new THREE.Color(0x9fd6f0);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+  const sunLight = new THREE.DirectionalLight(0xfff1d0, 0.85); sunLight.position.set(-8, 12, 8); scene.add(sunLight);
+
+  // laut, daratan, gunung
+  const sea = seaMesh(9, 11, 0x2a8fc4); sea.mesh.position.set(-6.5, 0, 0); scene.add(sea.mesh);
+  const seaBody = new THREE.Mesh(new THREE.BoxGeometry(9, 2, 11), new THREE.MeshLambertMaterial({ color: 0x1b6f9e })); seaBody.position.set(-6.5, -1.05, 0); scene.add(seaBody);
+  const land = new THREE.Mesh(new THREE.BoxGeometry(13, 2.2, 11), new THREE.MeshLambertMaterial({ color: 0x73ab55 })); land.position.set(3.5, -0.7, 0); scene.add(land);
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(13.02, 1.5, 11.02), new THREE.MeshLambertMaterial({ color: 0x8a6a48 })); soil.position.set(3.5, -1.05, 0); scene.add(soil);
+  const aquifer = new THREE.Mesh(new THREE.BoxGeometry(11, 0.5, 0.12), new THREE.MeshBasicMaterial({ color: 0x3aa0e0 })); aquifer.position.set(3.4, -0.95, 5.53); scene.add(aquifer);
+  const mtn = new THREE.Mesh(new THREE.ConeGeometry(3.6, 5, 28), new THREE.MeshLambertMaterial({ color: 0x6b8a4e })); mtn.position.set(6.5, 2.9, -1); scene.add(mtn);
+  const mtn2 = new THREE.Mesh(new THREE.ConeGeometry(2.4, 3, 24), new THREE.MeshLambertMaterial({ color: 0x5e7d45 })); mtn2.position.set(9.2, 1.9, -3); scene.add(mtn2);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.0, 24), new THREE.MeshLambertMaterial({ color: 0xf4f8fb })); cap.position.set(6.5, 5.9, -1); scene.add(cap);
+
+  const t1 = tree(1.2, 0.4, 1.4); scene.add(t1);
+  scene.add(tree(2.4, -3.2, 1.1), tree(0.2, -2.6, 1.0), tree(3.4, 3.8, 1.0));
+
+  // sungai
+  const D = new THREE.Vector3(-0.48, 0, 0.88);
+  const slope = (u) => { const r = 3.6 * (1 - u) * 1.04 + 0.08; return new THREE.Vector3(6.5 + D.x * r, 0.4 + 5 * u, -1 + D.z * r); };
+  const riverPts = [new THREE.Vector3(4.77, 0.47, 2.17), new THREE.Vector3(3.6, 0.47, 2.8), new THREE.Vector3(2.0, 0.47, 3.1), new THREE.Vector3(0.5, 0.47, 2.7), new THREE.Vector3(-1.0, 0.47, 3.0), new THREE.Vector3(-2.2, 0.47, 3.0)];
+  const riverMat = new THREE.MeshLambertMaterial({ color: 0x3aa0e0, transparent: true });
+  const riverMeshes = [];
+  for (let i = 0; i < riverPts.length - 1; i++) {
+    const a = riverPts[i], b = riverPts[i + 1], len = a.distanceTo(b);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(len + 0.1, 0.06, 0.55), riverMat);
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
+    scene.add(m); riverMeshes.push(m);
+  }
+  const flowPath = makePath([slope(0.9), slope(0.65), slope(0.4), slope(0.18), slope(0.0)].concat(riverPts.slice(1)).concat([new THREE.Vector3(-3.1, 0.12, 3.0)]));
+
+  // matahari
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffb830 }));
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(1.6, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0.3 }));
+  sun.add(halo); sun.position.set(-9.5, 9.5, -4); scene.add(sun);
+
+  // awan
+  const cloud = new THREE.Group();
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.96 });
+  [[0, 0, 0, 1.5], [1.5, -0.15, 0.2, 1.2], [-1.5, -0.1, -0.1, 1.2], [0.7, 0.55, -0.3, 1.1], [-0.7, 0.45, 0.3, 1.0], [2.5, -0.35, 0, 0.8], [-2.4, -0.35, 0.1, 0.8]].forEach((p) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(p[3], 18, 14), cloudMat); m.position.set(p[0], p[1], p[2]); cloud.add(m);
+  });
+  const CLOUD = new THREE.Vector3(3.6, 7.2, -0.5);
+  cloud.position.copy(CLOUD); scene.add(cloud);
+
+  // partikel
+  const vapor = makePoints(130, 0.36, 0xffffff); scene.add(vapor.pts);
+  const trans = makePoints(30, 0.3, 0xdff6ff); scene.add(trans.pts);
+  const rain = makePoints(240, 0.2, 0x6cc0f5); scene.add(rain.pts);
+  const runoff = makePoints(54, 0.3, 0x2f8fdc); scene.add(runoff.pts);
+  const ground = makePoints(56, 0.28, 0x1d6fc0); scene.add(ground.pts);
+
+  const NV = 130, vAge = new Float32Array(NV), vX = new Float32Array(NV), vZ = new Float32Array(NV), vS = new Float32Array(NV);
+  const spawnV = (i, first) => { vAge[i] = first ? Math.random() : 0; vX[i] = -9.6 + Math.random() * 6.8; vZ[i] = (Math.random() - 0.5) * 9; vS[i] = 0.8 + Math.random() * 0.5; };
+  for (let i = 0; i < NV; i++) spawnV(i, true);
+  const NT = 30, tAge = new Float32Array(NT), tX = new Float32Array(NT), tZ = new Float32Array(NT);
+  const spawnT = (i, first) => { tAge[i] = first ? Math.random() : 0; tX[i] = 1.2 + (Math.random() - 0.5) * 0.9; tZ[i] = 0.4 + (Math.random() - 0.5) * 0.9; };
+  for (let i = 0; i < NT; i++) spawnT(i, true);
+  const NR = 240; for (let i = 0; i < NR; i++) rain.pos[i * 3 + 1] = -100;
+  const NF = 54, fP = new Float32Array(NF), fS = new Float32Array(NF);
+  for (let i = 0; i < NF; i++) { fP[i] = Math.random(); fS[i] = 0.8 + Math.random() * 0.4; }
+  const NG = 56, gP = new Float32Array(NG), gX = new Float32Array(NG), gS = new Float32Array(NG);
+  for (let i = 0; i < NG; i++) { gP[i] = Math.random(); gX[i] = 0.2 + Math.random() * 5.2; gS[i] = 0.8 + Math.random() * 0.4; }
+
+  // label
+  const L = {
+    sea: makeLabel(sc, 'Laut', '', 'all'),
+    evap: makeLabel(sc, '1 Penguapan', 'warm', 'evap'),
+    trans: makeLabel(sc, 'Transpirasi pohon', '', 'evap'),
+    cond: makeLabel(sc, '2 Pengembunan', 'cool', 'cond'),
+    rain: makeLabel(sc, '3 Hujan', 'cool', 'rain'),
+    mtn: makeLabel(sc, 'Gunung', '', 'all'),
+    flow: makeLabel(sc, '4 Aliran sungai', '', 'flow'),
+    seep: makeLabel(sc, '4 Peresapan', '', 'flow'),
+    gw: makeLabel(sc, 'Air tanah', '', 'flow'),
+    sunL: makeLabel(sc, 'Matahari', 'warm', 'evap')
+  };
+  L.sea.pos.set(-7, 0.7, 5);
+  L.evap.pos.set(-6.6, 3.4, 0);
+  L.trans.pos.set(1.2, 3.6, 0.4);
+  L.cond.pos.set(3.6, 9.1, -0.5);
+  L.rain.pos.set(5.0, 4.6, 2.4);
+  L.mtn.pos.set(6.5, 6.8, -1);
+  L.flow.pos.set(2.0, 1.2, 3.4);
+  L.seep.pos.set(4.2, -0.1, 5.9);
+  L.gw.pos.set(1.2, -1.6, 5.9);
+  L.sunL.pos.set(-9.5, 11.2, -4);
+
+  const ui = { heat: $('#heat'), out: $('#heatOut'), pause: $('#aPause'), title: $('#aTitle'), text: $('#aText'), cause: $('#aCause') };
+  const TXT = {
+    all: ['Semua tahap berjalan bersama', 'Air tidak pernah habis. Air hanya berpindah tempat dan berganti wujud, lalu kembali lagi. Pilih satu tahap untuk melihatnya lebih jelas.', 'Penggerak utamanya adalah panas matahari dan gaya gravitasi.'],
+    evap: ['1. Penguapan (evaporasi)', 'Panas matahari memanaskan permukaan laut. Air berubah wujud dari cair menjadi gas yang disebut uap air, lalu naik ke udara.', 'Penyebab: panas matahari. Makin panas, makin banyak uap yang naik. Pohon ikut menyumbang uap lewat daunnya, disebut transpirasi.'],
+    cond: ['2. Pengembunan (kondensasi)', 'Makin tinggi, udara makin dingin. Uap air berubah kembali menjadi titik air yang sangat kecil, lalu berkumpul menjadi awan.', 'Penyebab: suhu udara yang dingin di ketinggian. Awan makin besar dan gelap kalau titik airnya makin banyak.'],
+    rain: ['3. Hujan (presipitasi)', 'Titik-titik air dalam awan bergabung dan menjadi berat. Gaya gravitasi menariknya jatuh ke bumi sebagai hujan.', 'Penyebab: gaya gravitasi dan awan yang sudah penuh air. Bentuk lain presipitasi adalah gerimis, salju, dan hujan es.'],
+    flow: ['4. Aliran dan peresapan', 'Air hujan yang jatuh di gunung mengalir ke sungai lalu kembali ke laut. Sebagian meresap ke dalam tanah menjadi air tanah, lalu mengalir pelan ke laut.', 'Penyebab: gravitasi menarik air ke tempat yang lebih rendah. Tanah gembur dan akar pohon memudahkan air meresap.']
+  };
+  const state = { stage: 'all', paused: false, m: 0.35, raining: false, rainI: 0, spawnAcc: 0 };
+  const focus = (g) => state.stage === 'all' || state.stage === g;
+
+  sc.setStage = (s) => {
+    state.stage = s;
+    $$('[data-stage]').forEach((b) => b.classList.toggle('on', b.dataset.stage === s));
+    ui.title.textContent = TXT[s][0]; ui.text.textContent = TXT[s][1]; ui.cause.textContent = TXT[s][2];
+  };
+  $$('[data-stage]').forEach((b) => b.addEventListener('click', () => sc.setStage(b.dataset.stage)));
+  ui.pause.addEventListener('click', () => { state.paused = !state.paused; ui.pause.setAttribute('aria-pressed', String(state.paused)); ui.pause.textContent = state.paused ? '▶ Lanjut' : '⏸ Jeda'; });
+  ui.heat.addEventListener('input', () => { ui.out.textContent = ui.heat.value + '%'; });
+  sc.setStage('all');
+
+  const P = new THREE.Vector3(), cGrey = new THREE.Color(0x7e8794), cWhite = new THREE.Color(0xffffff), cc = new THREE.Color();
+  const hide = (pts, i) => { pts.pos[i * 3 + 1] = -100; };
+
+  sc.update = (dt0, t) => {
+    const dt = state.paused ? 0 : dt0;
+    const heatN = parseFloat(ui.heat.value) / 100;
+
+    waveSea(sea.mesh, sea.base, t, 0.06);
+    sun.scale.setScalar(0.85 + 0.5 * heatN); halo.material.opacity = 0.12 + 0.3 * heatN;
+    sunLight.intensity = 0.55 + 0.4 * heatN;
+
+    // simulasi uap air di awan
+    const evapRate = heatN * 0.12;
+    if (state.raining) { state.m -= 0.17 * dt; if (state.m < 0.25) state.raining = false; }
+    else { state.m += evapRate * dt; if (state.m > 1.0) state.raining = true; }
+    state.m = clamp(state.m, 0, 1.6);
+    state.rainI = lerp(state.rainI, state.raining ? 1 : 0, clamp(dt * 2, 0, 1));
+
+    // penguapan
+    const activeV = Math.floor(NV * heatN);
+    const vOp = focus('evap') || state.stage === 'cond' ? 0.95 : 0.2;
+    vapor.mat.opacity = vOp; trans.mat.opacity = focus('evap') ? 0.95 : 0.18;
+    for (let i = 0; i < NV; i++) {
+      if (i >= activeV) { hide(vapor, i); continue; }
+      vAge[i] += dt * 0.11 * vS[i] * (0.6 + 0.8 * heatN);
+      if (vAge[i] >= 1) spawnV(i, false);
+      const a = vAge[i], k = smooth(0.25, 1, a);
+      vapor.pos[i * 3] = vX[i] + (CLOUD.x - vX[i]) * k * 0.9;
+      vapor.pos[i * 3 + 1] = 0.5 + a * 6.2;
+      vapor.pos[i * 3 + 2] = vZ[i] + (CLOUD.z - vZ[i]) * k * 0.75 + Math.sin(a * 10 + vX[i]) * 0.12;
+    }
+    for (let i = 0; i < NT; i++) {
+      if (heatN < 0.05) { hide(trans, i); continue; }
+      tAge[i] += dt * 0.2 * (0.5 + heatN);
+      if (tAge[i] >= 1) spawnT(i, false);
+      const a = tAge[i];
+      trans.pos[i * 3] = tX[i] + a * 1.6; trans.pos[i * 3 + 1] = 2.5 + a * 3.2; trans.pos[i * 3 + 2] = tZ[i] + Math.sin(a * 8 + i) * 0.1;
+    }
+
+    // awan
+    const sz = 0.55 + 0.6 * clamp(state.m / 1.2, 0, 1.2);
+    cloud.scale.setScalar(sz);
+    cloud.position.set(CLOUD.x + Math.sin(t * 0.3) * 0.25, CLOUD.y + Math.sin(t * 0.5) * 0.12, CLOUD.z);
+    cc.copy(cWhite).lerp(cGrey, clamp((state.m - 0.35) / 1.0, 0, 1));
+    cloudMat.color.copy(cc);
+    cloudMat.opacity = (state.stage === 'all' || state.stage === 'cond' || state.stage === 'rain') ? 0.97 : 0.3;
+
+    // hujan
+    const rainOn = focus('rain') || state.stage === 'flow';
+    rain.mat.opacity = rainOn ? 0.95 : 0.15;
+    state.spawnAcc += dt * 170 * state.rainI;
+    for (let i = 0; i < NR; i++) {
+      let y = rain.pos[i * 3 + 1];
+      if (y < -50) {
+        if (state.spawnAcc >= 1) {
+          state.spawnAcc -= 1;
+          rain.pos[i * 3] = 2.6 + Math.random() * 5.2; rain.pos[i * 3 + 1] = 6.5 + Math.random() * 0.4; rain.pos[i * 3 + 2] = -2.8 + Math.random() * 5.0;
+        }
+        continue;
+      }
+      y -= dt * 9; rain.pos[i * 3] += dt * 0.2;
+      if (y < 0.42) y = -100;
+      rain.pos[i * 3 + 1] = y;
+    }
+    state.spawnAcc = Math.min(state.spawnAcc, 4);
+
+    // aliran sungai dan air tanah
+    const flowOn = focus('flow');
+    runoff.mat.opacity = flowOn ? 0.98 : 0.2; ground.mat.opacity = flowOn ? 0.98 : 0.2;
+    riverMat.opacity = flowOn ? 1 : 0.5;
+    const fSpeed = 0.045 * (0.5 + 0.9 * state.rainI);
+    for (let i = 0; i < NF; i++) {
+      fP[i] = (fP[i] + dt * fSpeed * fS[i]) % 1;
+      flowPath.at(fP[i], P);
+      runoff.pos[i * 3] = P.x; runoff.pos[i * 3 + 1] = P.y + 0.14; runoff.pos[i * 3 + 2] = P.z + (Math.sin(i * 7.1) * 0.12);
+    }
+    const gSpeed = 0.05 * (0.4 + 0.8 * state.rainI);
+    for (let i = 0; i < NG; i++) {
+      gP[i] = (gP[i] + dt * gSpeed * gS[i]) % 1;
+      const p = gP[i], down = smooth(0.0, 0.3, p), across = smooth(0.3, 1.0, p);
+      const gx = gX[i] + (-2.4 - gX[i]) * across;
+      const gy = lerp(0.35, -0.95, down);
+      ground.pos[i * 3] = gx; ground.pos[i * 3 + 1] = gy; ground.pos[i * 3 + 2] = 5.62;
+    }
+    vapor.geo.attributes.position.needsUpdate = true; trans.geo.attributes.position.needsUpdate = true;
+    rain.geo.attributes.position.needsUpdate = true; runoff.geo.attributes.position.needsUpdate = true; ground.geo.attributes.position.needsUpdate = true;
+
+    // label
+    for (const l of sc.labels) { l.shown = true; l.el.classList.toggle('dim', l.group !== 'all' && !focus(l.group)); }
+    L.rain.shown = state.rainI > 0.2 || state.stage === 'rain';
+    const phase = state.raining ? 'Sedang hujan' : (state.m > 0.65 ? 'Awan menebal' : (heatN < 0.05 ? 'Matahari redup, air hampir tidak menguap' : 'Air menguap dan naik'));
+    badge.textContent = phase;
+  };
+  return sc;
+}
+scenes.water = makeWater();
+
+/* ---------- tab dan perulangan ---------- */
+function show(key) {
+  if (key === activeKey && scenes[key].shownOnce) return;
+  hideLabels(cur());
+  activeKey = key;
+  scenes[key].shownOnce = true;
+  $('#panel-wind').hidden = key !== 'wind';
+  $('#panel-water').hidden = key !== 'water';
+  $('#tab-wind').setAttribute('aria-selected', String(key === 'wind'));
+  $('#tab-water').setAttribute('aria-selected', String(key === 'water'));
+  stage.style.background = key === 'wind' ? '#8fd0f0' : '#9fd6f0';
+  try { history.replaceState(null, '', '#' + key); } catch (_) {}
+}
+$('#tab-wind').addEventListener('click', () => show('wind'));
+$('#tab-water').addEventListener('click', () => show('water'));
+if (location.hash === '#water') show('water'); else show('wind');
+
+let last = performance.now(), clock = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+  const sc = cur();
+  sc.update(dt, clock);
+  applyView(sc.view);
+  renderer.render(sc.scene, camera);
+  placeLabels(sc);
+  requestAnimationFrame(frame);
+}
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
